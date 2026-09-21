@@ -1,0 +1,373 @@
+{
+	"info": {
+		"_postman_id": "b1a2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+		"name": "Kubernetes Microservices Lab API Collection",
+		"description": "Postman Collection to test Node.js, Golang, Java Spring Boot REST APIs and NGINX Ingress Routing rules in the Kubernetes local cluster.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost",
+			"type": "string",
+			"description": "Base URL pointing to NGINX Ingress Controller on localhost:80 (or localhost:8080 if port-forwarded)"
+		}
+	],
+	"item": [
+		{
+			"name": "Node.js Service (service-a-nodejs)",
+			"item": [
+				{
+					"name": "Get Node.js Info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response contains service name', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.service).to.eql('service-a-nodejs');",
+									"    pm.expect(jsonData.language).to.eql('Node.js');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodejs/info",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodejs",
+								"info"
+							]
+						},
+						"description": "Fetches service info, environment from ConfigMap, secret status, and hostname of Node.js pod replica."
+					},
+					"response": []
+				},
+				{
+					"name": "Call Golang via K8s Internal DNS",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Inter-service communication succeeded', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.calledUrl).to.include('service-b-golang');",
+									"    pm.expect(jsonData.golangResponse).to.have.property('products');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodejs/call-golang",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodejs",
+								"call-golang"
+							]
+						},
+						"description": "Triggers Node.js service to perform an HTTP request to Golang service inside K8s cluster using internal DNS."
+					},
+					"response": []
+				},
+				{
+					"name": "Node.js Healthcheck (Liveness Probe)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Status is HEALTHY', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('HEALTHY');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodejs/healthz",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodejs",
+								"healthz"
+							]
+						},
+						"description": "Liveness probe endpoint used by Kubernetes."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Golang Service (service-b-golang)",
+			"item": [
+				{
+					"name": "Get Products List",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Returns products array', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.service).to.eql('service-b-golang');",
+									"    pm.expect(jsonData.products).to.be.an('array');",
+									"    pm.expect(jsonData.products.length).to.be.above(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/golang/products",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"golang",
+								"products"
+							]
+						},
+						"description": "Fetches product catalog and environment config from Golang REST service."
+					},
+					"response": []
+				},
+				{
+					"name": "Golang Healthcheck (Liveness Probe)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Status is HEALTHY', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('HEALTHY');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/golang/healthz",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"golang",
+								"healthz"
+							]
+						},
+						"description": "Golang liveness probe endpoint."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Java Service (service-c-java)",
+			"item": [
+				{
+					"name": "Get Users List",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Returns users array', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.service).to.eql('service-c-java');",
+									"    pm.expect(jsonData.users).to.be.an('array');",
+									"    pm.expect(jsonData.users.length).to.be.above(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/java/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"java",
+								"users"
+							]
+						},
+						"description": "Fetches users list from Java 21 Spring Boot REST service."
+					},
+					"response": []
+				},
+				{
+					"name": "Java Healthcheck (Liveness Probe)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Status is HEALTHY', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('HEALTHY');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/java/healthz",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"java",
+								"healthz"
+							]
+						},
+						"description": "Java Spring Boot liveness probe endpoint."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "NGINX Ingress Routing Tests",
+			"item": [
+				{
+					"name": "Ingress Path: /api/v1/nodejs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodejs/info",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodejs",
+								"info"
+							]
+						},
+						"description": "Tests NGINX Ingress routing path prefix `/api/v1/nodejs`."
+					},
+					"response": []
+				},
+				{
+					"name": "Ingress Path: /api/v1/golang",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/golang/products",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"golang",
+								"products"
+							]
+						},
+						"description": "Tests NGINX Ingress routing path prefix `/api/v1/golang`."
+					},
+					"response": []
+				},
+				{
+					"name": "Ingress Path: /api/v1/java",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/java/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"java",
+								"users"
+							]
+						},
+						"description": "Tests NGINX Ingress routing path prefix `/api/v1/java`."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

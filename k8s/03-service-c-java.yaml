@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-c-java
+  labels:
+    app: service-c-java
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-c-java
+  template:
+    metadata:
+      labels:
+        app: service-c-java
+    spec:
+      containers:
+      - name: java-app
+        image: localhost/service-c-java:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: SERVICE_NAME
+          value: "service-c-java"
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_ENV
+        - name: ELASTIC_APM_SERVICE_NAME
+          value: "service-c-java"
+        - name: ELASTIC_APM_APPLICATION_PACKAGES
+          value: "com.example.app"
+        - name: ELASTIC_APM_SERVER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: ELASTIC_APM_SERVER_URL
+        - name: ELASTIC_APM_ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: ELASTIC_APM_ENVIRONMENT
+        - name: ELASTIC_APM_ACTIVE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: ELASTIC_APM_ACTIVE
+        livenessProbe:
+          httpGet:
+            path: /api/v1/java/healthz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/v1/java/readyz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-c-java
+  labels:
+    app: service-c-java
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: service-c-java

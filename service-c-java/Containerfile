@@ -1,0 +1,15 @@
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
+WORKDIR /app
+COPY pom.xml ./
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+ADD https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.50.0/elastic-apm-agent-1.50.0.jar /app/elastic-apm-agent.jar
+COPY --from=builder /app/target/*.jar app.jar
+
+EXPOSE 8080
+ENV JAVA_OPTS="-Xms128m -Xmx256m"
+ENV JAVA_TOOL_OPTIONS="-javaagent:/app/elastic-apm-agent.jar"
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

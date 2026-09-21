@@ -1,0 +1,93 @@
+# ==============================================================================
+# Git Ignore for Kubernetes Microservices & Technology Lab
+# ==============================================================================
+
+# --- Operating System & Metadata ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- IDEs & Editors ---
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- Credentials, Secrets & Environment Variables ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.cert
+*.crt
+*.pfx
+*.p12
+*.token
+*kubeconfig*
+id_rsa
+id_rsa.pub
+
+# --- Generated / Runtime Monitoring Configurations ---
+# prometheus.yml contains runtime Kubernetes ServiceAccount bearer token
+monitoring/prometheus.yml
+!monitoring/prometheus.yml.template
+
+# --- Node.js (service-a-nodejs) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+
+# --- Java / Maven (service-c-java) ---
+target/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# --- Go (service-b-golang) ---
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/bin/
+
+# --- Python / Locust / Load Testing ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+.pytest_cache/
+.locust/
+
+# --- General Logs & Temporary Files ---
+*.log
+logs/
+tmp/
+temp/
