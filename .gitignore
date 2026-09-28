@@ -91,3 +91,6 @@ ENV/
 logs/
 tmp/
 temp/
+
+# --- Tableau Bridge ---
+*.rpm
