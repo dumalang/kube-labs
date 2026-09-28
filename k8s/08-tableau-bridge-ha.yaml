@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tableau-bridge-config
+  labels:
+    app: tableau-bridge
+data:
+  TABLEAU_SERVER_URL: "https://prod-ap-northeast-1.online.tableau.com" # Ganti dengan URL Cloud Pod Tableau Anda
+  TABLEAU_SITE_NAME: "your-tableau-site-name"                        # Ganti dengan Site Content URL Tableau Cloud Anda
+  TABLEAU_USER_EMAIL: "your-email@example.com"                       # Ganti dengan Email User Tableau Cloud Anda
+  POOL_ID: "00000000-0000-0000-0000-000000000000"                       # Ganti dengan Pool ID dari Tableau Cloud Settings -> Bridge
+  CLIENT_NAME_PREFIX: "k8s-bridge-ha"
+  MYSQL_HOST: "mysql-podman-service"
+  MYSQL_PORT: "3306"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tableau-bridge-secret
+  labels:
+    app: tableau-bridge
+type: Opaque
+stringData:
+  PAT_NAME: "tableau-bridge-k8s-token"        # Nama Personal Access Token (PAT)
+  PAT_SECRET: "YOUR_PAT_SECRET_TOKEN_HERE"    # Secret Value dari PAT
+---
+# Service & Endpoints untuk menghubungkan Pod Tableau Bridge ke Host Podman MySQL 8
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-podman-service
+  labels:
+    app: tableau-bridge
+spec:
+  ports:
+  - name: mysql
+    port: 3306
+    targetPort: 3306
+    protocol: TCP
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: mysql-podman-service
+  labels:
+    app: tableau-bridge
+subsets:
+  - addresses:
+      - ip: "192.168.1.100" # GANTI DENGAN IP HOST / IP PODMAN MYSQL 8 ANDA
+    ports:
+      - name: mysql
+        port: 3306
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tableau-bridge
+  labels:
+    app: tableau-bridge
+    tier: analytics
+spec:
+  replicas: 2 # Konfigurasi High Availability (HA) via Tableau Bridge Pooling
+  selector:
+    matchLabels:
+      app: tableau-bridge
+  template:
+    metadata:
+      labels:
+        app: tableau-bridge
+    spec:
+      # Pod Anti-Affinity memastikan Pod didistribusikan ke Node Kubernetes yang berbeda (HA Physical Isolation)
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - tableau-bridge
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: tableau-bridge
+        image: localhost/tableau-bridge:latest # Menggunakan image lokal yang di-load ke Kind
+        imagePullPolicy: Never
+        envFrom:
+        - configMapRef:
+            name: tableau-bridge-config
+        - secretRef:
+            name: tableau-bridge-secret
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: bridge-logs
+          mountPath: /root/Documents/My_Tableau_Bridge_Repository/Log
+      volumes:
+      - name: bridge-logs
+        emptyDir: {}
