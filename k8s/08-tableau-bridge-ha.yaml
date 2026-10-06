@@ -1,28 +1,12 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: tableau-bridge-config
-  labels:
-    app: tableau-bridge
-data:
-  TABLEAU_SERVER_URL: "https://prod-ap-northeast-1.online.tableau.com" # Ganti dengan URL Cloud Pod Tableau Anda
-  TABLEAU_SITE_NAME: "your-tableau-site-name"                        # Ganti dengan Site Content URL Tableau Cloud Anda
-  TABLEAU_USER_EMAIL: "your-email@example.com"                       # Ganti dengan Email User Tableau Cloud Anda
-  POOL_ID: "00000000-0000-0000-0000-000000000000"                       # Ganti dengan Pool ID dari Tableau Cloud Settings -> Bridge
-  CLIENT_NAME_PREFIX: "k8s-bridge-ha"
-  MYSQL_HOST: "mysql-podman-service"
-  MYSQL_PORT: "3306"
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: tableau-bridge-secret
-  labels:
-    app: tableau-bridge
-type: Opaque
-stringData:
-  PAT_NAME: "tableau-bridge-k8s-token"        # Nama Personal Access Token (PAT)
-  PAT_SECRET: "YOUR_PAT_SECRET_TOKEN_HERE"    # Secret Value dari PAT
+# ==============================================================================
+# Tableau Bridge High Availability (HA) Kubernetes Manifests
+# 
+# Catatan Arsitektur:
+# Konfigurasi ('tableau-bridge-config') dan Secret ('tableau-bridge-secret')
+# TIDAK di-hardcode di file YAML ini demi fleksibilitas & keamanan git.
+# Keduanya dibuat dan disinkronisasi secara dinamis dari file '.env.tableau' via:
+#   ./scripts/setup-tableau-bridge.sh
+# ==============================================================================
 ---
 # Service & Endpoints untuk menghubungkan Pod Tableau Bridge ke Host Podman MySQL 8
 apiVersion: v1
@@ -46,7 +30,7 @@ metadata:
     app: tableau-bridge
 subsets:
   - addresses:
-      - ip: "192.168.1.100" # GANTI DENGAN IP HOST / IP PODMAN MYSQL 8 ANDA
+      - ip: "10.89.1.2" # IP Container Podman MySQL 8
     ports:
       - name: mysql
         port: 3306
@@ -85,6 +69,11 @@ spec:
       - name: tableau-bridge
         image: localhost/tableau-bridge:latest # Menggunakan image lokal yang di-load ke Kind
         imagePullPolicy: Never
+        env:
+        - name: LANG
+          value: "en_US.UTF-8"
+        - name: LC_ALL
+          value: "en_US.UTF-8"
         envFrom:
         - configMapRef:
             name: tableau-bridge-config
@@ -99,7 +88,7 @@ spec:
             cpu: "2000m"
         volumeMounts:
         - name: bridge-logs
-          mountPath: /root/Documents/My_Tableau_Bridge_Repository/Log
+          mountPath: /root/Documents/My_Tableau_Bridge_Repository/Logs
       volumes:
       - name: bridge-logs
         emptyDir: {}

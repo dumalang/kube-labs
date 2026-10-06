@@ -22,7 +22,10 @@ Thumbs.db
 # --- Credentials, Secrets & Environment Variables ---
 .env
 .env.*
+.env.tableau
 !.env.example
+!.env.*.example
+!.env.tableau.example
 *.key
 *.pem
 *.cert

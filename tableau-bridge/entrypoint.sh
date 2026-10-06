@@ -1,6 +1,15 @@
 #!/bin/bash
 set -e
 
+# Fix Qt locale requirement - Qt6 requires UTF-8 locale
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export LANGUAGE=en_US:en
+
+# Ensure driver, logs, and IPC socket directories exist with correct permissions
+mkdir -p /opt/tableau/tableau_driver/jdbc /root/Documents/My_Tableau_Bridge_Repository/Logs /tmp/tableau-temp/LD/domain
+chmod 777 /tmp/tableau-temp /tmp/tableau-temp/LD /tmp/tableau-temp/LD/domain 2>/dev/null || true
+
 echo "========================================================"
 echo " Starting Tableau Bridge HA Client Container"
 echo " Container Hostname: ${HOSTNAME:-$(uname -n)}"
@@ -27,28 +36,45 @@ echo "User Email:      ${USER_EMAIL}"
 echo "Pool ID:         ${POOL_ID}"
 echo "Client Name:     ${CLIENT_NAME}"
 
-# Write PAT secret to a temporary file as required by TabBridgeClientCmd tokenLogin
-PAT_FILE="/tmp/pat_token.txt"
-echo -n "${PAT_SECRET}" > "${PAT_FILE}"
+# Write PAT token as JSON file: {"<PAT_NAME>": "<PAT_SECRET>"}
+# TabBridgeClientCmd v2026+ expects JSON format where the PAT name is the key
+PAT_FILE="/tmp/pat_token.json"
+printf '{ "%s": "%s" }' "${PAT_NAME}" "${PAT_SECRET}" > "${PAT_FILE}"
 chmod 600 "${PAT_FILE}"
 
-# Locate Tableau Bridge binary
-BIN_PATH=""
-if [ -f "/opt/tableau/tableau_bridge/bin/TabBridgeClientCmd" ]; then
-  BIN_PATH="/opt/tableau/tableau_bridge/bin/TabBridgeClientCmd"
-elif [ -f "/opt/tableau/tableau_bridge/bin/tableau-bridge-cli" ]; then
-  BIN_PATH="/opt/tableau/tableau_bridge/bin/tableau-bridge-cli"
-else
-  echo "[ERROR] Tableau Bridge executable not found in /opt/tableau/tableau_bridge/bin/"
+# Locate Tableau Bridge binaries
+CMD_PATH="/opt/tableau/tableau_bridge/bin/TabBridgeClientCmd"
+WORKER_PATH="/opt/tableau/tableau_bridge/bin/TabBridgeClientWorker"
+
+if [ ! -f "${CMD_PATH}" ] || [ ! -f "${WORKER_PATH}" ]; then
+  echo "[ERROR] Tableau Bridge executables not found in /opt/tableau/tableau_bridge/bin/"
   exit 1
 fi
 
-echo "Launching Tableau Bridge process via tokenLogin..."
+echo "Configuring Tableau Cloud service URL..."
+"${CMD_PATH}" setServiceConnection \
+  --service="${TABLEAU_SERVER_URL}" \
+  --ignoreCertificatesErrors=false \
+  --connectionConnectTimeout=30
 
-exec "${BIN_PATH}" tokenLogin -e \
-  --client "${CLIENT_NAME}" \
-  --site "${TABLEAU_SITE_NAME}" \
-  --userEmail "${USER_EMAIL}" \
-  --patTokenId "${PAT_NAME}" \
-  --patTokenFile "${PAT_FILE}" \
-  --poolId "${POOL_ID}"
+# Launch Tableau Minerva service (required for query federation / live data protocol)
+MINERVA_BIN=$(find /opt/tableau/ -name tabminerva 2>/dev/null | head -n 1)
+MINERVA_CFG="/opt/tableau/tableau_bridge/config/MinervaBridge.yml"
+
+if [ -f "${MINERVA_BIN}" ] && [ -f "${MINERVA_CFG}" ]; then
+  echo "Launching Tableau Minerva query engine..."
+  "${MINERVA_BIN}" -paramFile:"${MINERVA_CFG}" &
+  export SERVICE_NAME=minerva
+fi
+
+# TabBridgeClientWorker -e is the correct binary for running Bridge as embedded service.
+# TabBridgeClientCmd tokenLogin fails with IThreadContext assertion under container environments.
+echo "Launching Tableau Bridge Worker service..."
+
+exec "${WORKER_PATH}" -e \
+  --client="${CLIENT_NAME}" \
+  --site="${TABLEAU_SITE_NAME}" \
+  --userEmail="${USER_EMAIL}" \
+  --patTokenId="${PAT_NAME}" \
+  --patTokenFile="${PAT_FILE}" \
+  --poolId="${POOL_ID}"

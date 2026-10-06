@@ -88,44 +88,35 @@ Pastikan container MySQL 8 yang berjalan via Podman dapat diakses dari dalam clu
 
 ---
 
-### Phase 2: Konfigurasi Manifest Kubernetes
+### Phase 2: Konfigurasi Terpusat via Lingkungan (.env.tableau)
 
-Edit file [`k8s/08-tableau-bridge-ha.yaml`](file:///Users/jimmy/Labs/k8s/08-tableau-bridge-ha.yaml) dan sesuaikan dengan data asli dari **Phase 1**:
+Semua konfigurasi (URL Tableau, Site, User Email, Pool ID, Client Name Prefix, target IP & port MySQL, serta Secret PAT) sekarang **terpusat di file `.env.tableau`** dan tidak ada yang di-hardcode di file YAML Kubernetes.
 
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: tableau-bridge-config
-data:
-  TABLEAU_SERVER_URL: "https://prod-ap-northeast-1.online.tableau.com" # Ganti dengan URL Cloud Anda
-  TABLEAU_SITE_NAME: "site-anda"                                      # Ganti dengan Site Name Anda
-  TABLEAU_USER_EMAIL: "email-anda@domain.com"                        # Ganti dengan User Email Anda
-  POOL_ID: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"                     # Ganti dengan Pool ID asli
-  CLIENT_NAME_PREFIX: "k8s-bridge-ha"
-  MYSQL_HOST: "mysql-podman-service"
-  MYSQL_PORT: "3306"
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: tableau-bridge-secret
-type: Opaque
-stringData:
-  PAT_NAME: "tableau-bridge-k8s-token"                                # Token Name dari Phase 1
-  PAT_SECRET: "SECRET_PAT_TOKEN_ASLI_ANDA"                            # Token Secret dari Phase 1
----
-apiVersion: v1
-kind: Endpoints
-metadata:
-  name: mysql-podman-service
-subsets:
-  - addresses:
-      - ip: "192.168.x.x"                                              # GANTI DENGAN IP HOST PODMAN MYSQL 8 ASLI
-    ports:
-      - name: mysql
-        port: 3306
+#### 1. Buat file `.env.tableau`
+Salin template (file ini otomatis diabaikan oleh `.gitignore`):
+```bash
+cp .env.tableau.example .env.tableau
 ```
+
+#### 2. Lengkapi Nilai di `.env.tableau`
+```env
+# Tableau Cloud Configuration
+TABLEAU_SERVER_URL=https://prod-apsoutheast-c.online.tableau.com
+TABLEAU_SITE_NAME=site-anda
+TABLEAU_USER_EMAIL=email-anda@domain.com
+POOL_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+CLIENT_NAME_PREFIX=k8s-local-mac
+
+# MySQL Database Target (Podman)
+MYSQL_HOST=mysql-podman-service
+MYSQL_PORT=3306
+MYSQL_PODMAN_IP=10.89.1.2
+
+# Tableau Bridge Authentication (PAT)
+PAT_NAME=tableau-bridge-k8s-token
+PAT_SECRET=SECRET_PAT_TOKEN_ASLI_ANDA
+```
+*(Catatan: Jangan gunakan tanda kutip pada value)*
 
 ---
 
@@ -142,8 +133,9 @@ Script ini akan:
 1. Mem-build image container `localhost/tableau-bridge:latest` (platform `linux/amd64`).
 2. Mengunduh & menginstall MySQL ODBC 8.0 Driver.
 3. Memuat (*load*) image ke dalam cluster Kind (`k8s-microservices-lab`).
-4. Mengaplikasikan manifest Kubernetes (`k8s/08-tableau-bridge-ha.yaml`).
-5. Melakukan `rollout restart` pada deployment `tableau-bridge`.
+4. Mengaplikasikan Secret dari file `.env.tableau` ke cluster (`tableau-bridge-secret`).
+5. Mengaplikasikan manifest Kubernetes (`k8s/08-tableau-bridge-ha.yaml`).
+6. Melakukan `rollout restart` pada deployment `tableau-bridge`.
 
 ---
 

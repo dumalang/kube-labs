@@ -21,11 +21,18 @@ RUN yum -y update && \
       hostname \
     && yum clean all
 
-# 2. Download and install MySQL Connector/ODBC 8.0 for RedHat 8 (x86_64)
+# 2. Set environment locales for Qt and Tableau processes
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+# 3. Download and install MySQL Connector/ODBC 8.0 & MySQL Connector/J (JDBC) for RedHat 8
 RUN (wget --no-check-certificate --tries=5 --timeout=30 https://downloads.mysql.com/archives/get/p/10/file/mysql-connector-odbc-8.0.33-1.el8.x86_64.rpm -O /tmp/mysql-connector.rpm || \
      wget --no-check-certificate --tries=5 --timeout=30 https://repo.mysql.com/yum/mysql-8.0-community/el/8/x86_64/mysql-connector-odbc-8.0.35-1.el8.x86_64.rpm -O /tmp/mysql-connector.rpm) && \
     rpm -ivh --nodeps /tmp/mysql-connector.rpm && \
-    rm -f /tmp/mysql-connector.rpm
+    rm -f /tmp/mysql-connector.rpm && \
+    mkdir -p /opt/tableau/tableau_driver/jdbc && \
+    curl -sSL "https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.0.33/mysql-connector-j-8.0.33.jar" -o /opt/tableau/tableau_driver/jdbc/mysql-connector-j-8.0.33.jar && \
+    chmod 755 /opt/tableau/tableau_driver/jdbc/mysql-connector-j-8.0.33.jar
 
 # 3. Copy Tableau Bridge RPM package into container
 # Download the RPM from Tableau: https://www.tableau.com/support/downloads/bridge
