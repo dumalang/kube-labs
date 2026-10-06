@@ -1,0 +1,24 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: k8s-argocd-lab
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  # Microservices Ingress (HTTP) -> Host Port 8080 (tidak bentrok dengan cluster k8s-microservices-lab di port 80)
+  - containerPort: 80
+    hostPort: 8080
+    protocol: TCP
+  # Microservices Ingress (HTTPS) -> Host Port 8443 (tidak bentrok dengan port 443)
+  - containerPort: 443
+    hostPort: 8443
+    protocol: TCP
+  # Argo CD Web UI NodePort -> Host Port 8085 (akses langsung http://localhost:8085)
+  - containerPort: 30085
+    hostPort: 8085
+    protocol: TCP

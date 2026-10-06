@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-sa
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus-cluster-role
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/metrics
+      - nodes/proxy
+      - services
+      - services/proxy
+      - endpoints
+      - pods
+      - namespaces
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources:
+      - daemonsets
+      - deployments
+      - statefulsets
+      - replicasets
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics", "/metrics/cadvisor"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-cluster-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-sa
+    namespace: kube-system
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: prometheus-token-secret
+  namespace: kube-system
+  annotations:
+    kubernetes.io/service-account.name: prometheus-sa
+type: kubernetes.io/service-account-token
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-state-metrics
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kube-state-metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kube-state-metrics
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kube-state-metrics
+    spec:
+      containers:
+        - name: kube-state-metrics
+          image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.12.0
+          ports:
+            - name: http-metrics
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-state-metrics
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kube-state-metrics
+spec:
+  type: NodePort
+  ports:
+    - name: http-metrics
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+  selector:
+    app.kubernetes.io/name: kube-state-metrics

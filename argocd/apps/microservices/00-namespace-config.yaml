@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  labels:
+    app.kubernetes.io/part-of: k8s-microservices-lab
+data:
+  APP_ENV: "production-simulated"
+  DATABASE_URL: "postgres://postgres:securepass@db-service:5432/appdb"
+  LOG_LEVEL: "info"
+  ELASTIC_APM_SERVER_URL: "http://apm-server:8200"
+  ELASTIC_APM_ENVIRONMENT: "production-simulated"
+  ELASTIC_APM_ACTIVE: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+  labels:
+    app.kubernetes.io/part-of: k8s-microservices-lab
+type: Opaque
+stringData:
+  API_KEY: "secret-api-key-xyz-12345"
+  DB_PASSWORD: "super-secret-db-password"
