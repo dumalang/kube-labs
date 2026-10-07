@@ -5,7 +5,7 @@ metadata:
   labels:
     app: service-b-golang
 spec:
-  replicas: 3
+  replicas: 5
   selector:
     matchLabels:
       app: service-b-golang
