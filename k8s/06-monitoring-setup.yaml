@@ -74,6 +74,7 @@ spec:
       labels:
         app.kubernetes.io/name: kube-state-metrics
     spec:
+      serviceAccountName: prometheus-sa
       containers:
         - name: kube-state-metrics
           image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.12.0

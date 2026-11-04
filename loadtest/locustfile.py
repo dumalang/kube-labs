@@ -1,8 +1,10 @@
+import os
 from locust import HttpUser, task, between
 
 class ClusterLoadTestUser(HttpUser):
-    # Default target host points to NGINX Ingress on host machine via Podman network
-    host = "http://host.containers.internal"
+    # Target host points to NGINX Ingress on host machine via Podman network
+    # Port 8080 for Argo CD cluster (k8s-argocd-lab), Port 80 for manual cluster (k8s-microservices-lab)
+    host = os.getenv("TARGET_HOST", "http://host.containers.internal:8080")
     wait_time = between(0.1, 0.5)
 
     @task(3)

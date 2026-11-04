@@ -42,8 +42,12 @@ fi
 echo "✅ Bearer token retrieved successfully."
 
 # 4. Generate dynamic prometheus.yml configuration
+CONTROL_PLANE_NODE=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "k8s-argocd-lab-control-plane")
+echo "🎯 Detected control plane node: ${CONTROL_PLANE_NODE}"
 echo "⚙️ Generating monitoring/prometheus.yml..."
-sed "s/__SERVICE_ACCOUNT_TOKEN__/${TOKEN}/g" monitoring/prometheus.yml.template > monitoring/prometheus.yml
+sed -e "s/__SERVICE_ACCOUNT_TOKEN__/${TOKEN}/g" \
+    -e "s/__CONTROL_PLANE_NODE__/${CONTROL_PLANE_NODE}/g" \
+    monitoring/prometheus.yml.template > monitoring/prometheus.yml
 
 # 5. Launch Monitoring Containers
 echo "🐳 Launching Prometheus and Grafana containers on 'kind' network..."
@@ -66,6 +70,7 @@ else
 
     podman run -d \
         --name monitoring-prometheus \
+        --network-alias prometheus \
         --net kind \
         -p 9090:9090 \
         -v "${ROOT_DIR}/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \

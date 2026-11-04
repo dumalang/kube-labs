@@ -9,31 +9,32 @@ scrape_configs:
     tls_config:
       insecure_skip_verify: true
     static_configs:
-      - targets: ['k8s-microservices-lab-control-plane:6443']
+      - targets: ['__CONTROL_PLANE_NODE__:6443']
 
   - job_name: 'kubernetes-cadvisor'
     scheme: https
     bearer_token: '__SERVICE_ACCOUNT_TOKEN__'
     tls_config:
       insecure_skip_verify: true
-    metrics_path: '/api/v1/nodes/k8s-microservices-lab-control-plane/proxy/metrics/cadvisor'
+    metrics_path: '/api/v1/nodes/__CONTROL_PLANE_NODE__/proxy/metrics/cadvisor'
     static_configs:
-      - targets: ['k8s-microservices-lab-control-plane:6443']
+      - targets: ['__CONTROL_PLANE_NODE__:6443']
 
   - job_name: 'kubernetes-kubelet'
     scheme: https
     bearer_token: '__SERVICE_ACCOUNT_TOKEN__'
     tls_config:
       insecure_skip_verify: true
-    metrics_path: '/api/v1/nodes/k8s-microservices-lab-control-plane/proxy/metrics'
+    metrics_path: '/api/v1/nodes/__CONTROL_PLANE_NODE__/proxy/metrics'
     static_configs:
-      - targets: ['k8s-microservices-lab-control-plane:6443']
+      - targets: ['__CONTROL_PLANE_NODE__:6443']
 
   - job_name: 'kube-state-metrics'
     scheme: http
     static_configs:
-      - targets: ['k8s-microservices-lab-control-plane:30080']
+      - targets: ['__CONTROL_PLANE_NODE__:30080']
 
   - job_name: 'prometheus-self'
     static_configs:
       - targets: ['localhost:9090']
+

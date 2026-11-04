@@ -103,6 +103,56 @@ curl -s http://localhost/api/v1/nodejs/info | jq
 
 ---
 
+## ⚡ Load Testing & Benchmarking pada Cluster Argo CD
+
+Load testing generator (`Locust` & `k6`) dapat dijalankan langsung ke cluster Argo CD (port 8080):
+
+### 1. Menggunakan Locust Web UI (Interaktif di Browser)
+```bash
+./scripts/run-load-test.sh --argocd
+```
+Akses dashboard di [http://localhost:8089](http://localhost:8089) (Default host otomatis terisi `http://host.containers.internal:8080`).
+
+### 2. Menggunakan Headless CLI (Terminal Benchmark)
+```bash
+# Format: --cli [concurrent_users] [spawn_rate] [duration]
+./scripts/run-load-test.sh --argocd --cli 50 10 30s
+```
+
+### 3. Menggunakan Grafana k6
+```bash
+./scripts/run-load-test.sh --argocd --k6
+```
+
+> 💡 **Info:** Script `./scripts/run-load-test.sh` secara cerdas otomatis mendeteksi cluster yang sedang aktif jika flag `--argocd` tidak disertakan. Jika ingin menguji cluster manual lama, gunakan flag `--manual`.
+
+---
+
+## 📊 Monitoring & Observability (Grafana & Prometheus)
+
+Monitoring stack (Prometheus & Grafana) sudah aktif dan otomatis terhubung ke cluster `k8s-argocd-lab`:
+
+- **Grafana Web UI:** [http://localhost:3000](http://localhost:3000)
+  - **Username:** `admin`
+  - **Password:** `admin`
+- **Prometheus Metrics & Status:** [http://localhost:9090](http://localhost:9090)
+  - Target metrics: [http://localhost:9090/targets](http://localhost:9090/targets)
+
+### Dashboard Bawaan yang Tersedia di Grafana:
+1. **Kubernetes Cluster Overview**: Status node, CPU/RAM utilization, dan status pods cluster.
+2. **Microservices & Workloads Overview**: Replica count pods (`service-a-nodejs`, `service-b-golang`, `service-c-java`, `tableau-bridge`), restart count, serta request rate.
+
+### Mengelola Monitoring Stack:
+```bash
+# Menjalankan / menyegarkan stack monitoring:
+./scripts/setup-monitoring.sh
+
+# Menghentikan stack monitoring:
+./scripts/stop-monitoring.sh
+```
+
+---
+
 ## 🔄 Siklus Kerja GitOps (Push to Sync)
 
 Karena Argo CD diset untuk membaca remote branch `poc/argo-cd`:

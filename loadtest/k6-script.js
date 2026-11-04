@@ -12,7 +12,8 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.TARGET_HOST || 'http://host.containers.internal';
+// Port 8080 for Argo CD cluster (k8s-argocd-lab), Port 80 for manual cluster (k8s-microservices-lab)
+const BASE_URL = __ENV.TARGET_HOST || 'http://host.containers.internal:8080';
 
 export default function () {
   const res1 = http.get(`${BASE_URL}/api/v1/nodejs/info`);
